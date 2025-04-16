@@ -11,6 +11,19 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import firebase_admin
+from firebase_admin import credentials, db
+from config import dbURL
+
+# ------------------ Firebase Setup ------------------
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate("key.json")
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': dbURL
+    })
+
+
 # ------------------ FastAPI Setup ------------------
 app = FastAPI()
 
@@ -23,6 +36,7 @@ os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+whole, broken, id = None, None, 0
 
 # ------------------ Routes ------------------
 
@@ -30,14 +44,16 @@ templates = Jinja2Templates(directory="templates")
 async def form_get(request: Request):
     uploaded_files = sorted(Path(UPLOAD_FOLDER).glob("*"), reverse=True)
     processed_files = sorted(Path(PROCESSED_FOLDER).glob("*"), reverse=True)
-
+    global whole, broken
     latest_upload = uploaded_files[0].name if uploaded_files else None
     latest_processed = processed_files[0].name if processed_files else None
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "latest_file": latest_upload,
-        "processed_file": latest_processed
+        "processed_file": latest_processed,
+        "whole_grains": whole,
+        "broken_grains": broken
     })
 
 
@@ -46,12 +62,22 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_{file.filename}"
     file_path = os.path.join(UPLOAD_FOLDER, filename)
-
+    global whole, broken, id
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
 
     # Process the image after upload
-    process_image(file_path, os.path.join(PROCESSED_FOLDER, filename))
+    whole, broken = process_image(file_path, os.path.join(PROCESSED_FOLDER, filename))
+    
+    # Send data to Firebase Realtime Database
+    ref = db.reference("/grain_analysis")
+    ref.push({
+        "id": id,
+        "timestamp": datetime.now().isoformat(),
+        "whole_grains": whole,
+        "broken_grains": broken
+        })
+    id=id+1
 
     return RedirectResponse(url="/", status_code=303)
 

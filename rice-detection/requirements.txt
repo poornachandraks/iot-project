@@ -5,3 +5,4 @@ opencv-python
 numpy
 matplotlib
 python-multipart
+firebase-admin

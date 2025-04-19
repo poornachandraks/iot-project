@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rice Grain Classification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-6">
+
+  <header class="mb-10 text-center">
+    <h1 class="text-4xl font-bold text-teal-400 mb-2">Rice Grain Classification</h1>
+    <p class="text-gray-400">Live preview from USB camera. Capture and classify rice grains.</p>
+  </header>
+
+  <section class="bg-gray-800 p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+    <video id="camera" autoplay playsinline class="rounded-lg shadow-md w-full max-h-64 object-contain mb-4"></video>
+    
+    <canvas id="snapshot" width="640" height="480" class="hidden"></canvas>
+
+    <button 
+      onclick="capturePhoto()" 
+      class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200 shadow-md"
+    >
+      Capture & Upload
+    </button>
+
+    <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data" class="hidden">
+      <input type="file" name="file" id="imageInput" />
+    </form>
+  </section>
+
+  <footer class="mt-auto pt-10 text-sm text-gray-500">
+    &copy; 2025 Rice Classifier. All rights reserved.
+  </footer>
+
+  <script>
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("snapshot");
+    const fileInput = document.getElementById("imageInput");
+    const form = document.getElementById("uploadForm");
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (err) {
+        console.error("Camera access error:", err);
+      }
+    }
+
+    function capturePhoto() {
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+        
+        // Use DataTransfer to simulate file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+
+        form.submit();
+      }, "image/jpeg", 0.95);
+    }
+
+    startCamera();
+  </script>
+
+</body>
+</html>

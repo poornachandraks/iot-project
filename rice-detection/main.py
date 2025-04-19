@@ -57,6 +57,23 @@ async def form_get(request: Request):
     })
 
 
+@app.get("/local", response_class=HTMLResponse)
+async def form_get(request: Request):
+    uploaded_files = sorted(Path(UPLOAD_FOLDER).glob("*"), reverse=True)
+    processed_files = sorted(Path(PROCESSED_FOLDER).glob("*"), reverse=True)
+    global whole, broken
+    latest_upload = uploaded_files[0].name if uploaded_files else None
+    latest_processed = processed_files[0].name if processed_files else None
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "latest_file": latest_upload,
+        "processed_file": latest_processed,
+        "whole_grains": whole,
+        "broken_grains": broken
+    })
+
+
 @app.post("/", response_class=HTMLResponse)
 async def upload_file(request: Request, file: UploadFile = File(...)):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

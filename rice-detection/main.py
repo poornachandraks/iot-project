@@ -65,7 +65,7 @@ async def form_get(request: Request):
     latest_upload = uploaded_files[0].name if uploaded_files else None
     latest_processed = processed_files[0].name if processed_files else None
 
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse("index_2.html", {
         "request": request,
         "latest_file": latest_upload,
         "processed_file": latest_processed,
